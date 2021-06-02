@@ -42,7 +42,7 @@ const functions = {
         const description = data.description;
         const link = encodeURI(data.link);
         
-        return `**${title}** - ${scp_name}\n\nObject class: **${scp_class}**\n\nDescription: ${description}\n\nMore information: ${link}`
+        return `\n**${title}** - ${scp_name}\n\nObject class: **${scp_class}**\n\nDescription: ${description}\n\nMore information: ${link}`
     },
     random_scp: async () => {
         const URL = encodeURI(`https://scp-api-zelzazor.herokuapp.com/scp/random`);
@@ -63,7 +63,7 @@ const functions = {
         const description = data.description;
         const link = encodeURI(data.link);
 
-        return `**${title}** - ${scp_name}\n\nObject class: **${scp_class}**\n\nDescription: ${description}\n\nMore information: ${link}`
+        return `\n**${title}** - ${scp_name}\n\nObject class: **${scp_class}**\n\nDescription: ${description}\n\nMore information: ${link}`
     }
 }
 
