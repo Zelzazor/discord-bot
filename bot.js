@@ -33,12 +33,12 @@ const functions = {
         }
         const res = await fetch(URL, init);
         //console.log(res);
-        const data = await res.json();
+        const data = await res.json()[0];
         
 
-        const title = data.title;
+        const title = data.item_number;
         const scp_name = data.name;
-        const scp_class = data.class;
+        const scp_class = data.object_class;
         const description = data.description;
         const link = encodeURI(data.link);
         
@@ -54,12 +54,12 @@ const functions = {
         }
         const res = await fetch(URL, init);
         //console.log(res);
-        const data = await res.json();
+        const data = await res.json()[0];
         //console.log(data);
 
-        const title = data.title;
+        const title = data.item_number;
         const scp_name = data.name;
-        const scp_class = data.class;
+        const scp_class = data.object_class;
         const description = data.description;
         const link = encodeURI(data.link);
 
