@@ -33,14 +33,14 @@ const functions = {
         }
         const res = await fetch(URL, init);
         //console.log(res);
-        const data = await res.json()[0];
+        const data = await res.json();
         
 
-        const title = data.item_number;
-        const scp_name = data.name;
-        const scp_class = data.object_class;
-        const description = data.description;
-        const link = encodeURI(data.link);
+        const title = data[0].item_number;
+        const scp_name = data[0].name;
+        const scp_class = data[0].object_class;
+        const description = data[0].description;
+        const link = encodeURI(data[0].link);
         
         return `\n**${title}** - ${scp_name}\n\nObject class: **${scp_class}**\n\nDescription: ${description}\n\nMore information: ${link}`
     },
@@ -55,13 +55,13 @@ const functions = {
         const res = await fetch(URL, init);
         //console.log(res);
         const data = await res.json();
-        console.log(data);
+        //console.log(data);
 
-        const title = data.item_number;
-        const scp_name = data.name;
-        const scp_class = data.object_class;
-        const description = data.description;
-        const link = encodeURI(data.link);
+        const title = data[0].item_number;
+        const scp_name = data[0].name;
+        const scp_class = data[0].object_class;
+        const description = data[0].description;
+        const link = encodeURI(data[0].link);
 
         return `\n**${title}** - ${scp_name}\n\nObject class: **${scp_class}**\n\nDescription: ${description}\n\nMore information: ${link}`
     }
