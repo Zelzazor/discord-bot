@@ -54,8 +54,8 @@ const functions = {
         }
         const res = await fetch(URL, init);
         //console.log(res);
-        const data = await res.json()[0];
-        //console.log(data);
+        const data = await res.json();
+        console.log(data);
 
         const title = data.item_number;
         const scp_name = data.name;
