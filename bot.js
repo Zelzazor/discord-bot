@@ -87,11 +87,17 @@ client.on("message", async (msg) => {
     let args = msg.content.trim().split(/ +/g);
     //console.log(args);
     try{
-        if(args.length > 1){
-            await msg.reply(await commands[args[0]](args[1]));
-        }else{
-            await msg.reply(await commands[args[0]]());
+        if(args[0] === '/start' || args[0] === '/skip' || args[0] === '/stop'){
+            await msg.reply('Aquí estará el futuro bot de música. Comando utilizado: '+ args[0]);
         }
+        else{
+            if(args.length > 1){
+                await msg.reply(await commands[args[0]](args[1]));
+            }else{
+                await msg.reply(await commands[args[0]]());
+            }
+        }
+        
         
     }
     catch(err){
