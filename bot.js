@@ -9,6 +9,8 @@ dotenv.config();
 
 const queue = new Map();
 
+let limit;
+
 // eslint-disable-next-line no-undef
 const scp_auth = process.env.KEY_SCP;
 
@@ -137,8 +139,14 @@ const functions = {
     playSong: (guild, song) => {
         const serverQueue = queue.get(guild.id);
         if (!song) {
-            serverQueue.voiceChannel.leave();
             queue.delete(guild.id);
+            clearTimeout(limit);
+            limit = setTimeout(()=>{ 
+                if(queue.size < 1){
+                    serverQueue.textChannel.send("He salido de la sala por inactividad...");
+                    serverQueue.voiceChannel.leave();
+                } 
+            }, 600000)
             return;
         }
 
@@ -147,10 +155,10 @@ const functions = {
             .on("finish", () => {
                 serverQueue.songs.shift();
                 functions.playSong(guild, serverQueue.songs[0]);
-        })
-        .on("error", error => console.error(error));
-        dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
-        serverQueue.textChannel.send(`Comenzando canción: **${song.title}**`);
+            })
+            .on("error", error => console.error(error));
+            dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+            serverQueue.textChannel.send(`Comenzando canción: **${song.title}**`);
     },
 
     skipSong: (message, serverQueue) => {
