@@ -203,10 +203,6 @@ client.on("message", async (msg) => {
         if(args[0] === '/play' || args[0] === '/skip' || args[0] === '/stop'){
             const serverQueue = queue.get(msg.guild.id);
             await commands[args[0]](msg, serverQueue);
-             
-            
-            
-            await msg.reply('Aquí estará el futuro bot de música. Comando utilizado: '+ args[0]);
         }
         else{
             if(args.length > 1){
