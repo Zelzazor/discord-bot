@@ -82,7 +82,7 @@ const functions = {
             "¡No tengo permisos! Dile al administrador que me dé permisos."
           );
         }
-        else{
+        else {
             let song;
             if (ytdl.validateURL(args[1])) {
                 const metadata = await ytdl.getInfo(args[1]);
@@ -92,17 +92,88 @@ const functions = {
                   url: `https://youtube.com/watch?v=${songInfo.videoId}`
                 };
                 
-                return message.channel.send(`FROM URL\n\n**${song.title}** \n\n ${song.url}`);
-              } else {
+                
+            } 
+            else {
                 const {videos} = await yts(args.slice(1).join(" "));
-                if (!videos.length) return message.channel.send("No songs were found!");
+                if (!videos.length) return message.channel.send("¡No se han encontrado canciones!");
                 song = {
                   title: videos[0].title,
                   url: videos[0].url
                 };
-                return message.channel.send(`FROM SEARCH \n\n **${song.title}** \n\n ${song.url}`);
-              }
+                
+            }
+
+            if (!serverQueue) {
+                const queueContruct = {
+                  textChannel: message.channel,
+                  voiceChannel: voiceChannel,
+                  connection: null,
+                  songs: [],
+                  volume: 5,
+                  playing: true
+                }
+                queue.set(message.guild.id, queueContruct);
+
+                queueContruct.songs.push(song);
+
+                try {
+                    let connection = await voiceChannel.join();
+                    queueContruct.connection = connection;
+                    functions.playSong(message.guild, queueContruct.songs[0]);
+                } catch (err) {
+                    console.log(err);
+                    queue.delete(message.guild.id);
+                    return message.channel.send(err);
+                }
+            }
+            else {
+                serverQueue.songs.push(song);
+                return message.channel.send(`¡${song.title} Ha sido añadida a la cola!`);
+            }
+
         }
+    },
+    playSong: (guild, song) => {
+        const serverQueue = queue.get(guild.id);
+        if (!song) {
+            serverQueue.voiceChannel.leave();
+            queue.delete(guild.id);
+            return;
+        }
+
+        const dispatcher = serverQueue.connection
+            .play(ytdl(song.url))
+            .on("finish", () => {
+                serverQueue.songs.shift();
+                functions.playSong(guild, serverQueue.songs[0]);
+        })
+        .on("error", error => console.error(error));
+        dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+        serverQueue.textChannel.send(`Comenzando canción: **${song.title}**`);
+    },
+
+    skipSong: (message, serverQueue) => {
+        if (!message.member.voice.channel)
+            return message.channel.send(
+                "¡Debes estar en un canal de música para saltar una canción!"
+            );
+        if (!serverQueue)
+            return message.channel.send("¡No hay canciones en la cola para saltar!");
+        serverQueue.connection.dispatcher.end();
+    },
+
+    stopSongs: (message, serverQueue) => {
+        if (!message.member.voice.channel)
+            return message.channel.send(
+                "¡Debes estar en un canal de música para detener las canciones!"
+            );
+    
+        if (!serverQueue)
+            return message.channel.send("¡No hay canciones en la cola qué detener!");
+    
+        serverQueue.songs = [];
+        serverQueue.connection.dispatcher.end();
     }
 }
 
@@ -119,7 +190,9 @@ const commands = {
     "/random_scp": functions.random_scp,
     "/scp": functions.find_scp,
     "/advice": functions.advice,
-    "/play": functions.addSong
+    "/play": functions.addSong,
+    "/skip": functions.skipSong,
+    "/stop": functions.stopSongs
 }
 
 client.on("message", async (msg) => {
