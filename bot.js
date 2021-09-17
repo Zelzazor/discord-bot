@@ -1,9 +1,12 @@
 const Discord = require("discord.js");
 const dotenv = require("dotenv");
 const fetch = require("node-fetch");
+const ytdl = require('ytdl-core');
 
 
 dotenv.config();
+
+const queue = new Map();
 
 // eslint-disable-next-line no-undef
 const scp_auth = process.env.KEY_SCP;
@@ -64,6 +67,23 @@ const functions = {
         const link = encodeURI(data[0].link);
 
         return `\n**${title}** - ${scp_name}\n\nObject class: **${scp_class}**\n\nDescription: ${description}\n\nMore information: ${link}`
+    },
+    addSong: async (message, serverQueue) => {
+        let args = message.content.trim().split(/ +/g);
+        const voiceChannel = message.member.voice.channel;
+        if (!voiceChannel)
+          return message.channel.send(
+            "¡Necesitas estar en un canal de voz para escuchar música! "+args[0]
+          );
+        const permissions = voiceChannel.permissionsFor(message.client.user);
+        if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
+          return message.channel.send(
+            "¡No tengo permisos! Dile al administrador que me dé permisos."
+          );
+        }
+        else{
+            return "¡Todo bien!"
+        }
     }
 }
 
@@ -79,7 +99,8 @@ const commands = {
     \nFin de semana: 9:00P.M. con libre tránsito hasta las 12:00A.M.\n`,
     "/random_scp": functions.random_scp,
     "/scp": functions.find_scp,
-    "/advice": functions.advice
+    "/advice": functions.advice,
+    "/play": functions.addSong
 }
 
 client.on("message", async (msg) => {
@@ -87,7 +108,12 @@ client.on("message", async (msg) => {
     let args = msg.content.trim().split(/ +/g);
     //console.log(args);
     try{
-        if(args[0] === '/start' || args[0] === '/skip' || args[0] === '/stop'){
+        if(args[0] === '/play' || args[0] === '/skip' || args[0] === '/stop'){
+            const serverQueue = queue.get(msg.guild.id);
+            await commands[args[0]](msg, serverQueue);
+             
+            
+            
             await msg.reply('Aquí estará el futuro bot de música. Comando utilizado: '+ args[0]);
         }
         else{
@@ -104,6 +130,8 @@ client.on("message", async (msg) => {
         console.log(err);
     }
 })
+
+
 
 // eslint-disable-next-line no-undef
 client.login(process.env.TOKEN);
