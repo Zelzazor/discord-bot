@@ -2,6 +2,7 @@ const Discord = require("discord.js");
 const dotenv = require("dotenv");
 const fetch = require("node-fetch");
 const ytdl = require('ytdl-core');
+const yts = require("yt-search");
 
 
 dotenv.config();
@@ -82,7 +83,24 @@ const functions = {
           );
         }
         else{
-            return message.channel.send("¡Todo Bien!")
+            let song;
+            if (ytdl.validateURL(args[1])) {
+                const songInfo = await ytdl.getInfo(args[1]);
+                song = {
+                  title: songInfo.title,
+                  url: songInfo.video_url
+                };
+
+                return message.channel.send(`**${song.title}** \n\n ${song.url}`);
+              } else {
+                const {videos} = await yts(args[1]);
+                if (!videos.length) return message.channel.send("No songs were found!");
+                song = {
+                  title: videos[0].title,
+                  url: videos[0].url
+                };
+                return message.channel.send(`**${song.title}** \n\n ${song.url}`);
+              }
         }
     }
 }
