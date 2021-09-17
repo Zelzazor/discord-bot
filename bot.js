@@ -82,7 +82,7 @@ const functions = {
           );
         }
         else{
-            return "¡Todo bien!"
+            return message.channel.send("¡Todo Bien!")
         }
     }
 }
