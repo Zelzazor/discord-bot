@@ -94,7 +94,7 @@ const functions = {
                 
                 return message.channel.send(`FROM URL\n\n**${song.title}** \n\n ${song.url}`);
               } else {
-                const {videos} = await yts(args[1]);
+                const {videos} = await yts(args.slice(1).join(" "));
                 if (!videos.length) return message.channel.send("No songs were found!");
                 song = {
                   title: videos[0].title,
