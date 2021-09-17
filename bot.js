@@ -85,13 +85,14 @@ const functions = {
         else{
             let song;
             if (ytdl.validateURL(args[1])) {
-                const songInfo = await ytdl.getInfo(args[1]);
+                const metadata = await ytdl.getInfo(args[1]);
+                const songInfo = metadata.player_response.videoDetails;
                 song = {
                   title: songInfo.title,
-                  url: songInfo.video_url
+                  url: `https://youtube.com/watch?v=${songInfo.videoId}`
                 };
-
-                return message.channel.send(`**${song.title}** \n\n ${song.url}`);
+                
+                return message.channel.send(`FROM URL\n\n**${song.title}** \n\n ${song.url}`);
               } else {
                 const {videos} = await yts(args[1]);
                 if (!videos.length) return message.channel.send("No songs were found!");
@@ -99,7 +100,7 @@ const functions = {
                   title: videos[0].title,
                   url: videos[0].url
                 };
-                return message.channel.send(`**${song.title}** \n\n ${song.url}`);
+                return message.channel.send(`FROM SEARCH \n\n **${song.title}** \n\n ${song.url}`);
               }
         }
     }
