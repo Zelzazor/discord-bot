@@ -149,7 +149,7 @@ const functions = {
             }, 600000)
             return;
         }
-
+        try{
         const dispatcher = serverQueue.connection
             .play(ytdl(song.url))
             .on("finish", () => {
@@ -159,6 +159,11 @@ const functions = {
             .on("error", error => console.error(error));
             dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
             serverQueue.textChannel.send(`Comenzando canción: **${song.title}**`);
+        }
+        catch(ex){
+            serverQueue.connection.dispatcher.end();
+            return serverQueue.textChannel.send(`La canción no se ha podido reproducir, saltando a la siguiente canción (si existe)...`);
+        }
     },
 
     showQueue: async (message, serverQueue) => {
