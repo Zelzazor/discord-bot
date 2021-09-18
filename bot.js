@@ -161,6 +161,44 @@ const functions = {
             serverQueue.textChannel.send(`Comenzando canción: **${song.title}**`);
     },
 
+    showQueue: async (message, serverQueue) => {
+        if (!message.member.voice.channel)
+        return message.channel.send(
+            "¡Debes estar en un canal de música para ver la cola!"
+        );
+        if (!serverQueue)
+            return message.channel.send("¡No hay canciones en la cola!");
+        
+        let songs = "```Cola actual:\n\n";
+        let totalLength = 0;
+
+        for (let song of serverQueue.songs){
+            let metadata = await ytdl.getBasicInfo(song.url);
+            let songLength = parseInt(metadata.videoDetails.lengthSeconds);
+            let time = functions.secondsToString(songLength);
+            songs += `${song.title} - ${time} \n`;
+            totalLength += songLength;
+        }
+
+        let totalTime = functions.secondsToString(totalLength);
+        
+        songs += `Total time - ${totalTime}\`\`\``;
+
+        
+
+        return message.channel.send(songs);
+    },
+
+    secondsToString: (seconds) => {
+        let hour = Math.floor(seconds / 3600);
+        hour = (hour < 1) ? '' : hour + ':';
+        let minute = Math.floor((seconds / 60) % 60);
+        minute = (minute < 10)? '0' + minute + ':' : minute + ':';
+        let second = seconds % 60;
+        second = (second < 10)? '0' + second : second;
+        return hour + minute + second;
+    },
+
     skipSong: (message, serverQueue) => {
         if (!message.member.voice.channel)
             return message.channel.send(
@@ -200,7 +238,8 @@ const commands = {
     "/advice": functions.advice,
     "/play": functions.addSong,
     "/skip": functions.skipSong,
-    "/stop": functions.stopSongs
+    "/stop": functions.stopSongs,
+    "/queue": functions.showQueue
 }
 
 client.on("message", async (msg) => {
@@ -208,10 +247,12 @@ client.on("message", async (msg) => {
     let args = msg.content.trim().split(/ +/g);
     //console.log(args);
     try{
-        if(args[0] === '/play' || args[0] === '/skip' || args[0] === '/stop'){
+        //music bot
+        if(args[0] === '/play' || args[0] === '/skip' || args[0] === '/stop' || args[0] === '/queue'){
             const serverQueue = queue.get(msg.guild.id);
             await commands[args[0]](msg, serverQueue);
         }
+        //other stuff
         else{
             if(args.length > 1){
                 await msg.reply(await commands[args[0]](args[1]));
