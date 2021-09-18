@@ -171,12 +171,14 @@ const functions = {
         
         let songs = "```Cola actual:\n\n";
         let totalLength = 0;
+        let index = 1;
 
         for (let song of serverQueue.songs){
             let metadata = await ytdl.getBasicInfo(song.url);
             let songLength = parseInt(metadata.videoDetails.lengthSeconds);
             let time = functions.secondsToString(songLength);
-            songs += `${song.title} - ${time} \n`;
+            songs += `${index}. ${song.title} - ${time} \n`;
+            index++;
             totalLength += songLength;
         }
 
@@ -187,6 +189,36 @@ const functions = {
         
 
         return message.channel.send(songs);
+    },
+
+    removeSpecificSong: (message, serverQueue) => {
+        let args = message.content.trim().split(/ +/g);
+        if(args.length != 2){
+            return message.channel.send("¡Cantidad de argumentos incorrecto! Uso: /remove <número> - Ejemplo: /remove 1")
+        }
+        if(args[1] < 1 || args[1] > serverQueue.songs.length){
+            return message.channel.send("Índice inválido. Revise la cantidad de canciones presentes en la cola e intente con un índice de canción válido")
+        }
+        if(args[1] === '1'){
+            functions.skipSong(message, serverQueue);
+            return;
+        }
+
+        if (!message.member.voice.channel)
+        return message.channel.send(
+            "¡Debes estar en un canal de música para ver la cola!"
+        );
+        if (!serverQueue)
+            return message.channel.send("¡No hay canciones en la cola!");
+
+        let index = args[1];
+
+        let indexedSong = serverQueue.songs[index-1];
+
+        serverQueue.songs = serverQueue.songs.filter(( _ , i) => {
+            return i !== index-1;
+        });
+        return message.channel.send(`Canción eliminada: ${indexedSong.title}`);
     },
 
     secondsToString: (seconds) => {
@@ -236,10 +268,17 @@ const commands = {
     "/random_scp": functions.random_scp,
     "/scp": functions.find_scp,
     "/advice": functions.advice,
+    //music bot
     "/play": functions.addSong,
     "/skip": functions.skipSong,
     "/stop": functions.stopSongs,
-    "/queue": functions.showQueue
+    "/queue": functions.showQueue,
+    "/remove": functions.removeSpecificSong,
+    "/p": functions.addSong,
+    "/sk": functions.skipSong,
+    "/st": functions.stopSongs,
+    "/q": functions.showQueue,
+    "/r": functions.removeSpecificSong
 }
 
 client.on("message", async (msg) => {
@@ -248,7 +287,7 @@ client.on("message", async (msg) => {
     //console.log(args);
     try{
         //music bot
-        if(args[0] === '/play' || args[0] === '/skip' || args[0] === '/stop' || args[0] === '/queue'){
+        if(args[0] === '/play' || args[0] === '/skip' || args[0] === '/stop' || args[0] === '/queue' || args[0]=== '/remove' || args[0] === '/p' || args[0] === '/sk' || args[0] === '/st' || args[0] === '/q' || args[0]=== '/r'){
             const serverQueue = queue.get(msg.guild.id);
             await commands[args[0]](msg, serverQueue);
         }
