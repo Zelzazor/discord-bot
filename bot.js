@@ -11,6 +11,8 @@ const queue = new Map();
 
 let limit;
 
+const minutesBeforeTimeout = 3;
+
 // eslint-disable-next-line no-undef
 const scp_auth = process.env.KEY_SCP;
 
@@ -146,7 +148,7 @@ const functions = {
                     serverQueue.textChannel.send("He salido de la sala por inactividad...");
                     serverQueue.voiceChannel.leave();
                 } 
-            }, 600000)
+            }, minutesBeforeTimeout * 60000)
             return;
         }
         try{
