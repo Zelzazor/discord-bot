@@ -198,7 +198,7 @@ const functions = {
 
         let totalTime = functions.secondsToString(totalLength);
         
-        songs += `${serverQueue.songs.length} canci${serverQueue.songs.length === 1 ? 'ón':'ones'} en la cola - Tiempo total - ${totalTime}\`\`\``;
+        songs += `\n\n${serverQueue.songs.length} canci${serverQueue.songs.length === 1 ? 'ón':'ones'} en la cola - Tiempo total - ${totalTime}\`\`\``;
 
         
 
