@@ -182,14 +182,21 @@ const functions = {
             let metadata = await ytdl.getBasicInfo(song.url);
             let songLength = parseInt(metadata.videoDetails.lengthSeconds);
             let time = functions.secondsToString(songLength);
-            songs += `${index}. ${song.title} - ${time} \n`;
+            if(index == 1){
+                songs += `Ahora está sonando: \n\n`;
+                songs += `${index}. ${song.title} - ${time} \n\n`;
+                songs += (serverQueue.songs.length === 1) ? `` : `En la cola: \n\n`;
+            }else{
+                songs += `${index}. ${song.title} - ${time} \n`;
+            }
+            
             index++;
             totalLength += songLength;
         }
 
         let totalTime = functions.secondsToString(totalLength);
         
-        songs += `Total time - ${totalTime}\`\`\``;
+        songs += `${index} canciones en la cola - Tiempo total - ${totalTime}\`\`\``;
 
         
 
