@@ -188,15 +188,15 @@ const functions = {
                 songs += (serverQueue.songs.length === 1) ? `` : `En la cola: \n\n`;
             }else{
                 songs += `${index}. ${song.title} - ${time} \n`;
+                
             }
-            
             index++;
             totalLength += songLength;
         }
 
         let totalTime = functions.secondsToString(totalLength);
         
-        songs += `${index} canciones en la cola - Tiempo total - ${totalTime}\`\`\``;
+        songs += `${serverQueue.song.length} canciones en la cola - Tiempo total - ${totalTime}\`\`\``;
 
         
 
