@@ -230,7 +230,10 @@ const functions = {
         }
         try{
         const dispatcher = serverQueue.connection
-            .play(ytdl(song.url))
+            .play(ytdl(song.url, {
+                quality: 'highestaudio',
+                highWaterMark: 1 << 25
+            }))
             .on("finish", () => {
                 serverQueue.songs.shift();
                 functions.playSong(guild, serverQueue.songs[0]);
