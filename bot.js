@@ -2,6 +2,7 @@ const Discord = require("discord.js");
 const dotenv = require("dotenv");
 const fetch = require("node-fetch");
 const ytdl = require('ytdl-core');
+const ytpl = require('ytpl');
 const yts = require("yt-search");
 
 
@@ -93,7 +94,8 @@ const functions = {
                 const songInfo = metadata.player_response.videoDetails;
                 song = {
                   title: songInfo.title,
-                  url: `https://youtube.com/watch?v=${songInfo.videoId}`
+                  url: `https://youtube.com/watch?v=${songInfo.videoId}`,
+                  length: songInfo.lengthSeconds
                 };
                 
                 
@@ -103,7 +105,8 @@ const functions = {
                 if (!videos.length) return message.channel.send("¡No se han encontrado canciones!");
                 song = {
                   title: videos[0].title,
-                  url: videos[0].url
+                  url: videos[0].url,
+                  length: videos[0].seconds
                 };
                 
             }
@@ -134,6 +137,80 @@ const functions = {
             else {
                 serverQueue.songs.push(song);
                 return message.channel.send(`¡${song.title} Ha sido añadida a la cola!`);
+            }
+
+        }
+    },
+
+    addPlaylist: async (message, serverQueue) => {
+        let args = message.content.trim().split(/ +/g);
+        const voiceChannel = message.member.voice.channel;
+        if (!voiceChannel)
+          return message.channel.send(
+            "¡Necesitas estar en un canal de voz para escuchar música! "+args[0]
+          );
+        const permissions = voiceChannel.permissionsFor(message.client.user);
+        if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
+          return message.channel.send(
+            "¡No tengo permisos! Dile al administrador que me dé permisos."
+          );
+        }
+        else {
+            const songs = []; 
+            let metadata;
+            if (ytpl.validateID(args[1])) {
+                metadata = await ytpl(args[1]);
+                const songsMeta = metadata.items;
+                
+                songsMeta.forEach((song)=>{
+                    const songFormat = {
+                        title: song.title,
+                        url: song.shortUrl,
+                        length: song.durationSec
+                    }
+                    songs.push(songFormat);
+                });
+                
+                
+                
+            } 
+            else {
+                return message.channel.send("Enlace de playlist inválido. Revise el enlace e intente de nuevo.")
+                
+            }
+
+            if (!serverQueue) {
+                const queueContruct = {
+                  textChannel: message.channel,
+                  voiceChannel: voiceChannel,
+                  connection: null,
+                  songs: [],
+                  volume: 5,
+                  playing: true
+                }
+                queue.set(message.guild.id, queueContruct);
+
+                songs.forEach((song)=>{
+                    queueContruct.songs.push(song);
+                })
+
+                try {
+                    let connection = await voiceChannel.join();
+                    queueContruct.connection = connection;
+                    functions.playSong(message.guild, queueContruct.songs[0]);
+                    return message.channel.send(`¡La playlist ${metadata.title} Ha sido añadida a la cola!`);
+                } catch (err) {
+                    console.log(err);
+                    queue.delete(message.guild.id);
+                    return message.channel.send(err);
+                }
+            }
+            else {
+                songs.forEach((song)=>{
+                    serverQueue.songs.push(song);
+                })
+                console.log(metadata.title);
+                return message.channel.send(`¡La playlist ${metadata.title} Ha sido añadida a la cola!`);
             }
 
         }
@@ -178,31 +255,95 @@ const functions = {
         
         let songs = "```Cola actual:\n\n";
         let totalLength = 0;
-        let index = 1;
+        let queueSongs = [...serverQueue.songs];
+        let messages = Math.ceil(queueSongs.length/25);
+        
+        
 
-        for (let song of serverQueue.songs){
-            let metadata = await ytdl.getBasicInfo(song.url);
-            let songLength = parseInt(metadata.videoDetails.lengthSeconds);
-            let time = functions.secondsToString(songLength);
-            if(index == 1){
-                songs += `Ahora está sonando: \n\n`;
-                songs += `${index}. ${song.title} - ${time} \n\n`;
-                songs += (serverQueue.songs.length === 1) ? `` : `En la cola: \n\n`;
-            }else{
-                songs += `${index}. ${song.title} - ${time} \n`;
+        let index = 1;
+        
+        if(messages < 2){
+            for (let song of queueSongs){
+                let time = functions.secondsToString(song.length);
+                if(index === 1){
+                    songs += `Ahora está sonando: \n\n`;
+                    songs += `${index}. ${song.title} - ${time} \n\n`;
+                    songs += (queueSongs.length === 1) ? `` : `En la cola: \n\n`;
+                }else{
+                    songs += `${index}. ${song.title} - ${time} \n`;
+                        
+                }
+                    
+                index++;
+                totalLength += song.length;
+            }
+
+            let totalTime = functions.secondsToString(totalLength);
+
+            songs += `\n\n${serverQueue.songs.length} canci${serverQueue.songs.length === 1 ? 'ón':'ones'} en la cola - Tiempo total - ${totalTime}\`\`\``;
+            return message.channel.send(songs.slice(0,1999));
+        }
+        else{
+            let dividedQueue = [];
+            let initial = 0;
+            let final = 25;
+            for(let i = 0; i < messages; i++){
+                if(i === messages - 1){
+                    final = initial + (queueSongs.length - initial);
+                    dividedQueue.push(queueSongs.slice(initial, final))
+                }else{
+                    dividedQueue.push(queueSongs.slice(initial, final))
+                    initial = final;
+                    final = initial + 25;
+                }
                 
             }
-            index++;
-            totalLength += songLength;
+
+            let indexQueue = 0;
+
+            for(let queue of dividedQueue){
+                songs = "```Cola actual:\n\n";
+                for(let song of queue){
+                    let time = functions.secondsToString(song.length);
+                if(index == 1){
+                    songs += `Ahora está sonando: \n\n`;
+                    songs += `${index}. ${song.title} - ${time} \n\n`;
+                    songs += (queueSongs.length === 1) ? `` : `En la cola: \n\n`;
+                }else{
+                    songs += `${index}. ${song.title} - ${time} \n`;
+                        
+                }
+                    
+                index++;
+                totalLength += song.length;
+                }
+                let totalTime = functions.secondsToString(totalLength);
+                if(indexQueue === dividedQueue.length - 1) {
+                    songs += `\n\n${serverQueue.songs.length} canci${serverQueue.songs.length === 1 ? 'ón':'ones'} en la cola - Tiempo total - ${totalTime}\`\`\``;
+                }
+                else{
+                    songs +=`\n\n\`\`\``
+                }
+                
+                
+
+                await message.channel.send(songs.slice(0,1999));
+                indexQueue++;
+                
+            }
+
+            //console.log(dividedQueue);
         }
-
-        let totalTime = functions.secondsToString(totalLength);
         
-        songs += `\n\n${serverQueue.songs.length} canci${serverQueue.songs.length === 1 ? 'ón':'ones'} en la cola - Tiempo total - ${totalTime}\`\`\``;
 
         
 
-        return message.channel.send(songs);
+        //if(index > 25) songs+=`\n\nLímite de vista de cola (25) alcanzado\n`;
+        
+
+        
+
+        
     },
 
     removeSpecificSong: (message, serverQueue) => {
@@ -284,11 +425,13 @@ const commands = {
     "/advice": functions.advice,
     //music bot
     "/play": functions.addSong,
+    "/playlist": functions.addPlaylist,
     "/skip": functions.skipSong,
     "/stop": functions.stopSongs,
     "/queue": functions.showQueue,
     "/remove": functions.removeSpecificSong,
     "/p": functions.addSong,
+    "/pl": functions.addPlaylist,
     "/sk": functions.skipSong,
     "/st": functions.stopSongs,
     "/q": functions.showQueue,
@@ -301,7 +444,7 @@ client.on("message", async (msg) => {
     //console.log(args);
     try{
         //music bot
-        if(args[0] === '/play' || args[0] === '/skip' || args[0] === '/stop' || args[0] === '/queue' || args[0]=== '/remove' || args[0] === '/p' || args[0] === '/sk' || args[0] === '/st' || args[0] === '/q' || args[0]=== '/r'){
+        if(args[0] === '/play' || args[0] === '/skip' || args[0] === '/stop' || args[0] === '/queue' || args[0]=== '/remove'||args[0]=== '/playlist' || args[0] === '/p' || args[0] === '/sk' || args[0] === '/st' || args[0] === '/q' || args[0]=== '/r'|| args[0]=== '/pl'){
             const serverQueue = queue.get(msg.guild.id);
             await commands[args[0]](msg, serverQueue);
         }
