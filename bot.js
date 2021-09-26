@@ -102,7 +102,10 @@ const functions = {
             } 
             else {
                 const {videos} = await yts(args.slice(1).join(" "));
-                if (!videos.length) return message.channel.send("¡No se han encontrado canciones!");
+                if (!videos.length) {
+                    console.log("¡No se han encontrado canciones!");
+                    return message.channel.send("¡No se han encontrado canciones!");
+                }
                 song = {
                   title: videos[0].title,
                   url: videos[0].url,
@@ -120,9 +123,9 @@ const functions = {
                   volume: 5,
                   playing: true
                 }
-                queue.set(message.guild.id, queueContruct);
 
                 queueContruct.songs.push(song);
+                queue.set(message.guild.id, queueContruct);
 
                 try {
                     let connection = await voiceChannel.join();
@@ -136,6 +139,7 @@ const functions = {
             }
             else {
                 serverQueue.songs.push(song);
+                console.log(`¡${song.title} Ha sido añadida a la cola!`);
                 return message.channel.send(`¡${song.title} Ha sido añadida a la cola!`);
             }
 
@@ -145,12 +149,16 @@ const functions = {
     addPlaylist: async (message, serverQueue) => {
         let args = message.content.trim().split(/ +/g);
         const voiceChannel = message.member.voice.channel;
-        if (!voiceChannel)
-          return message.channel.send(
-            "¡Necesitas estar en un canal de voz para escuchar música! "+args[0]
-          );
+        if (!voiceChannel){
+            console.log("¡Necesitas estar en un canal de voz para escuchar música!");
+            return message.channel.send(
+                "¡Necesitas estar en un canal de voz para escuchar música! "+args[0]
+              );
+        }
+          
         const permissions = voiceChannel.permissionsFor(message.client.user);
         if (!permissions.has("CONNECT") || !permissions.has("SPEAK")) {
+            console.log("¡No tengo permisos! Dile al administrador que me dé permisos.");
           return message.channel.send(
             "¡No tengo permisos! Dile al administrador que me dé permisos."
           );
@@ -175,6 +183,7 @@ const functions = {
                 
             } 
             else {
+                console.log("Enlace de playlist inválido. Revise el enlace e intente de nuevo.");
                 return message.channel.send("Enlace de playlist inválido. Revise el enlace e intente de nuevo.")
                 
             }
@@ -198,6 +207,7 @@ const functions = {
                     let connection = await voiceChannel.join();
                     queueContruct.connection = connection;
                     functions.playSong(message.guild, queueContruct.songs[0]);
+                    console.log(`¡La playlist ${metadata.title} Ha sido añadida a la cola!`);
                     return message.channel.send(`¡La playlist ${metadata.title} Ha sido añadida a la cola!`);
                 } catch (err) {
                     console.log(err);
@@ -209,7 +219,8 @@ const functions = {
                 songs.forEach((song)=>{
                     serverQueue.songs.push(song);
                 })
-                console.log(metadata.title);
+                console.log(`¡La playlist ${metadata.title} Ha sido añadida a la cola!`);
+                
                 return message.channel.send(`¡La playlist ${metadata.title} Ha sido añadida a la cola!`);
             }
 
@@ -220,41 +231,62 @@ const functions = {
         if (!song) {
             queue.delete(guild.id);
             clearTimeout(limit);
+            console.log("Timeout comenzado.");
             limit = setTimeout(()=>{ 
                 if(queue.size < 1){
+                    console.log("El bot ha dejado el chat de voz.");
                     serverQueue.textChannel.send("He salido de la sala por inactividad...");
                     serverQueue.voiceChannel.leave();
                 } 
             }, minutesBeforeTimeout * 60000)
             return;
         }
-        try{
+        
+        const stream = ytdl(song.url, {
+            quality: 'highestaudio',
+            highWaterMark: 1 << 25
+        });
         const dispatcher = serverQueue.connection
-            .play(ytdl(song.url, {
-                quality: 'highestaudio',
-                highWaterMark: 1 << 25
-            }))
-            .on("finish", () => {
+            .play(stream).on("finish", () => {
                 serverQueue.songs.shift();
                 functions.playSong(guild, serverQueue.songs[0]);
             })
-            .on("error", error => console.error(error));
+
+            const listenerError = stream.listeners('error')[0];
+            stream.removeListener('error', listenerError);
+
+            stream.on("error", error => {
+                try{
+                    throw new Error()
+                }
+                catch{
+                    stream.destroy();
+                    console.log("Ha ocurrido un error inesperado con la canción que se intentó reproducir.");
+                    serverQueue.textChannel.send("Ha ocurrido un error inesperado con la canción que se intentó reproducir.")
+                    console.log(error);
+                }
+            });
+        
             dispatcher.setVolumeLogarithmic(serverQueue.volume / 5);
+            console.log(`Comenzando canción: ${song.title}`);
             serverQueue.textChannel.send(`Comenzando canción: **${song.title}**`);
-        }
-        catch(ex){
-            serverQueue.connection.dispatcher.end();
-            return serverQueue.textChannel.send(`La canción no se ha podido reproducir, saltando a la siguiente canción (si existe)...`);
-        }
+        
+        
     },
 
     showQueue: async (message, serverQueue) => {
-        if (!message.member.voice.channel)
-        return message.channel.send(
-            "¡Debes estar en un canal de música para ver la cola!"
-        );
-        if (!serverQueue)
+        if (!message.member.voice.channel){
+            console.log("¡Debes estar en un canal de música para ver la cola!");
+            return message.channel.send(
+                "¡Debes estar en un canal de música para ver la cola!"
+            );
+        }
+
+        if (!serverQueue){
+            console.log("¡No hay canciones en la cola!")
             return message.channel.send("¡No hay canciones en la cola!");
+        }
+            
         
         let songs = "```Cola actual:\n\n";
         let totalLength = 0;
@@ -284,6 +316,7 @@ const functions = {
             let totalTime = functions.secondsToString(totalLength);
 
             songs += `\n\n${serverQueue.songs.length} canci${serverQueue.songs.length === 1 ? 'ón':'ones'} en la cola - Tiempo total - ${totalTime}\`\`\``;
+            console.log("Mostrada Cola de Reproducción");
             return message.channel.send(songs.slice(0,1999));
         }
         else{
@@ -329,7 +362,7 @@ const functions = {
                 }
                 
                 
-
+                console.log("Mostrada Cola de Reproducción");
                 await message.channel.send(songs.slice(0,1999));
                 indexQueue++;
                 
@@ -352,9 +385,11 @@ const functions = {
     removeSpecificSong: (message, serverQueue) => {
         let args = message.content.trim().split(/ +/g);
         if(args.length != 2){
+            console.log("¡Cantidad de argumentos incorrecto! Uso: /remove <número> - Ejemplo: /remove 1")
             return message.channel.send("¡Cantidad de argumentos incorrecto! Uso: /remove <número> - Ejemplo: /remove 1")
         }
         if(args[1] < 1 || args[1] > serverQueue.songs.length){
+            console.log("/remove Índice inválido. Revise la cantidad de canciones presentes en la cola e intente con un índice de canción válido");
             return message.channel.send("Índice inválido. Revise la cantidad de canciones presentes en la cola e intente con un índice de canción válido")
         }
         if(args[1] === '1'){
@@ -362,12 +397,18 @@ const functions = {
             return;
         }
 
-        if (!message.member.voice.channel)
-        return message.channel.send(
-            "¡Debes estar en un canal de música para ver la cola!"
-        );
-        if (!serverQueue)
+        if (!message.member.voice.channel){
+            console.log("¡Debes estar en un canal de música para ver la cola!");
+            return message.channel.send(
+                "¡Debes estar en un canal de música para ver la cola!"
+            );
+        }
+        
+        if (!serverQueue){
+            console.log("¡No hay canciones en la cola!");
             return message.channel.send("¡No hay canciones en la cola!");
+        }
+           
 
         let index = args[1];
 
@@ -376,6 +417,7 @@ const functions = {
         serverQueue.songs = serverQueue.songs.filter(( _ , i) => {
             return i !== index-1;
         });
+        console.log(`Canción eliminada: ${indexedSong.title}`);
         return message.channel.send(`Canción eliminada: ${indexedSong.title}`);
     },
 
@@ -397,6 +439,8 @@ const functions = {
         if (!serverQueue)
             return message.channel.send("¡No hay canciones en la cola para saltar!");
         serverQueue.connection.dispatcher.end();
+        console.log("¡Saltada canción!");
+        return message.channel.send("¡Saltada canción!");
     },
 
     stopSongs: (message, serverQueue) => {
@@ -410,19 +454,14 @@ const functions = {
     
         serverQueue.songs = [];
         serverQueue.connection.dispatcher.end();
+        console.log("¡Cola borrada y detenidas canciones!");
+        return message.channel.send("¡Cola borrada y detenidas canciones!");
     }
 }
 
 const commands = {
     "/ping": () => "pong",
-    "/toque": () => `\n🚨 Toque de queda a partir de 2/6/2021 hasta 9/6/2021 🚨:
-    \nLunes a Viernes: 6:00P.M. con libre tránsito hasta las 9:00P.M.
-    \nFin de semana: 3:00P.M. con libre tránsito hasta las 6:00P.M.
-    \n🚨 Toque de queda a partir de 27/5/2021 (Solo aplica al GSD) 🚨:
-    \nTodos los días: 8:00P.M. con libre tránsito hasta las 11:00P.M.
-    \n🚨 Toque de queda anterior 🚨:
-    \nLunes a viernes: 10:00P.M. con libre tránsito hasta las 12:00A.M.
-    \nFin de semana: 9:00P.M. con libre tránsito hasta las 12:00A.M.\n`,
+    "/toque": () => `\nOlvídese que ya no hay donde importa.\n`,
     "/random_scp": functions.random_scp,
     "/scp": functions.find_scp,
     "/advice": functions.advice,
