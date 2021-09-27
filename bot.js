@@ -357,7 +357,7 @@ const functions = {
           }
 
           index++;
-          totalLength += song.length;
+          totalLength += parseInt(song.length);
         }
         let totalTime = functions.secondsToString(totalLength);
         if (indexQueue === dividedQueue.length - 1) {
