@@ -18,6 +18,9 @@ const scp_auth = process.env.KEY_SCP;
 
 const client = new Discord.Client();
 
+// eslint-disable-next-line no-undef
+const COOKIE = process.env.COOKIE;
+
 client.on("ready", () => {
   console.log(`Logged in as ${client.user.tag}!`);
 });
@@ -248,6 +251,11 @@ const functions = {
     const stream = ytdl(song.url, {
       quality: "highestaudio",
       highWaterMark: 1 << 25,
+      requestOptions: {
+        headers: {
+          Cookie: COOKIE
+        }
+      }
     });
     const dispatcher = serverQueue.connection.play(stream).on("finish", () => {
       serverQueue.songs.shift();
